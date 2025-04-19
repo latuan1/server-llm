@@ -6,9 +6,20 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class StarCoderModel(BaseModel):
     def __init__(self, model_name: str):
+        """
+        Initializes a StarCoderModel instance with the specified model name.
+        """
         super().__init__(model_name)
 
     def load_model(self, model_name):
+        """
+        Loads a StarCoder model and tokenizer, supporting both base and PEFT-adapted models.
+        
+        If a PEFT adapter configuration is detected in the local model directory, loads the base model and applies the PEFT adapter, printing adapter configuration and module details for verification. Otherwise, loads the base model and tokenizer from the HuggingFace "bigcode" directory. The tokenizer's pad token is set to the end-of-sequence token.
+        
+        Returns:
+            A tuple containing the loaded model and tokenizer.
+        """
         model_path = os.path.join("models", model_name)
         is_local_model = os.path.exists(model_path)
         is_peft_model = is_local_model and os.path.exists(os.path.join(model_path, "adapter_config.json"))
@@ -89,6 +100,17 @@ class StarCoderModel(BaseModel):
         return model, tokenizer
 
     def generate_from_prompt(self, prompt: str):
+        """
+        Generates text from a given prompt using the loaded language model.
+        
+        The prompt is tokenized with a separator, truncated to 512 tokens, and passed to the model for text generation. The output is decoded into a string with special tokens removed.
+        
+        Args:
+            prompt: The input text to prompt the model.
+        
+        Returns:
+            The generated text as a string.
+        """
         inputs = self.tokenizer(prompt + "<SEP> ", return_tensors="pt", max_length=512, truncation=True)
         inputs = {key: value.to(self.model.device) for key, value in inputs.items()}
         with torch.no_grad():
